@@ -1,0 +1,250 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Simple Map</title>
+    <style>
+        html, body {
+            height: 100%;
+            width: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        #map {
+            /* configure the size of the map */
+            width: 100%;
+            height: 100%;
+        }
+        /* configuring sidebar settings */
+        .sidebar {
+            margin: 0;
+            padding: 0;
+            width: 200px;
+            position: fixed;
+            height: 100%;
+            overflow: auto;
+        }
+
+        /* configuring content style settings */
+        .content {
+            margin-left: 200px;
+            height: 100%;
+        }
+
+        /* Sidebar links */
+        .sidebar a {
+          display: block;
+          color: black;
+          padding: 16px;
+          text-decoration: none;
+        }
+
+        /* Active/current link */
+        .sidebar a.active {
+          background-color: #084b83;
+          color: #f0f6f6;
+        }
+
+        /* Links on mouse-over */
+        .sidebar a.link:hover:not(.active) {
+          background-color: #084b83;
+          color: #f0f6f6;
+        }
+
+        /* Making input fields more aesthetic */
+        .sidebar input{
+           margin-left: 20px;
+           background-color: #f0f6f6;
+        }
+
+        /* making drop down box more aesthetic */
+        .sidebar select{
+           margin-left: 20px;
+           background-color: #f0f6f6;
+        }
+
+        /* making labels more aesthetic */
+        .sidebar label{
+           margin-left: 10px;
+         }
+
+         /* making buttons more aesthetic */
+        .sidebar button{
+           margin-left: 30px;
+           background-color: #f0f6f6;
+         }
+
+         /* giving visual feedback for buttons*/
+         .sidebar button:hover{
+         background-color: #084b83;
+         color: #f0f6f6
+         }
+
+
+        /* links to leaflet and grabs the necessary code */
+    </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+</head>
+<body>
+<div class="sidebar">
+  <a class="active" href="#home">Hi {{username}}</a><br/>
+  <a>Pins</a><br/>
+    <label>Latitude</label>
+    <input type="number" name="Latitude" id="pin_lat"/>
+    <label>Longitude</label>
+    <input type="number" name="Longitude" id="pin_lon"/>
+    <label>Description</label>
+    <input type="text" name="Description" id="pin_desc"/><br/>
+   <!--<button id="pins_submit_button">Submit</button>-->
+
+  <a>Vehicles</a><br/>
+    <label>Start (days)</label>
+    <input type="number" name="start" id="start" value="1"/><br/>
+    <label>End (days)</label><br/>
+    <input type="number" name="end" id="end" value="0"/>
+    <label>Vehicle</label><br/>
+    <select name="vehicle" id="vehicle">
+            <option value="vehicle1">vehicle1</option>
+            <option value="vehicle2">vehicle2</option>
+            <option value="vehicle3">vehicle3</option>
+            <option value="vehicle_number_plate">vehicle_number_plate</option>
+        </select><br/>
+    <button id="vehicles_submit_button">Submit</button>
+  <a class="link" href="/admin">Accounts</a><br/>
+  <a class="link" href="/accounts/logout">Exit Program</a><br/>
+</div>
+<div class="content">
+    <div id="map" class="map"></div>
+    <div id="popup" style="padding: 10px;background-color: white;"></div>
+</div>
+{% load static %}
+<!--pins_data = {{ pins_data }}-->
+<script>
+
+
+    //sets the maps starting position to 51.5, -0.09, which is Canary Wharf ish
+    //also sets starting zoom level as 13
+    const map = L.map('map').setView([51.5, -0.09], 13);
+
+    //sets the map to use openstreetmap map tiles
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    //creating a layer group. This is overlayed on the map, so the map doesn't have
+    //to be changed when this is updated.
+    const layerGroup = L.layerGroup().addTo(map);
+
+    //sets the parameters of map pings
+    const PingIcon = L.Icon.extend({
+        options: {
+            iconSize:     [10, 10],
+            iconAnchor: [0,0],
+            shadowAnchor: [0,0],
+            popupAnchor: [0,0],
+        }
+    });
+
+    //creates a pingIcon variable as an Icon with pingIcon parameters and as map_ping.svg
+    const pingIcon = new PingIcon({iconUrl: "{% static 'map_ping.svg' %}" });
+
+    //creates a pinIcon variable as an Icon with pinIcon parameters and as map_pin.svg
+    //const pinIcon = new PingIcon({iconUrl: "{% static 'map_pin.svg' %}" });
+
+    //L.marker([51.5054,-0.0235], {icon: pingIcon}).bindPopup('51').addTo(map);
+    //L.marker([-0.0235,51.5054], {icon: pingIcon}).bindPopup('0.02').addTo(map);
+    //console.log(pins_data)
+    //let pins_data = {{ pins_data }}
+    //console.log(pins_data)
+    //L.marker([pins_data[1]['lon'],pins_data[1]['lon']]).addTo(map);
+
+
+    const postJSON = function(url, request_data, callback) {
+        //console.log(request_data)
+
+        //creating a new XMLHTTP request. This will be a POST request
+        //to send request data to the webserver
+        let xhr = new XMLHttpRequest();
+        xhr.open('POST', url, true);
+        //setting request and response type to JSON
+        xhr.setRequestHeader('Content-type', 'application/json');
+        xhr.responseType = 'json';
+
+        //dealing with response from request
+        xhr.onload = function() {
+            var status = xhr.status;
+            if (status === 200) {
+                //calling callback function
+                callback(null, xhr.response);
+            } else {
+                callback(status, xhr.response);
+            }
+        };
+        //sending request
+        xhr.send(JSON.stringify(request_data));
+    };
+
+    const loadPositionData = function() {
+        //clearing map pings already on the map
+        layerGroup.clearLayers();
+
+        //taking in data in input fields and creating dictionary
+        let request_data = {}
+        request_data.start = document.getElementById("start").value
+        request_data.end = document.getElementById("end").value
+        request_data.vehicle = document.getElementById("vehicle").value
+
+        //calling postJSON request function
+        postJSON('positions', request_data,
+            function(err, data) {
+                if (err !== null) {
+                    alert('Something went wrong: ' + err);
+                } else {
+                //using response data
+                    let coordinates = data['position_data']
+
+                    //iterating through JSON response
+                    for (let i = 0; i < coordinates.length; i++) {
+                        pos = [coordinates[i]['lon'], coordinates[i]['lat'] ]
+                        time = coordinates[i]['time']
+                        // creating map pings on layerGroup
+                        L.marker(pos, {icon: pingIcon}).bindPopup(time).addTo(layerGroup);
+
+                    //pulling pins data from context
+                    //let pins_data = {{ pins_data }}
+
+                    //iterating through pins
+                    //for (let i = 0; i < pins_data.length; i++) {
+                        //pos = [ pins_data[i]['lon'], pins_data[i]['lat'] ]
+                        //content = pins_data[i]['content']
+                        //creating pins on layer group
+                        //L.marker(pos, {icon: pingIcon}).bindPopup(content).addTo(layerGroup);
+
+
+                    }
+                }
+            }
+        )
+    };
+
+    //adds event listener for the vehicles_submit_button being clicked
+    //when that happens, calls loadPositionData
+    document.addEventListener(
+        'DOMContentLoaded', () => {
+            document.getElementById('vehicles_submit_button').
+            addEventListener('click', loadPositionData );
+        }
+    );
+
+    //
+    // const mGreen = L.marker([51.5, -0.09], {icon: greenIcon}).bindPopup('I am a green leaf.').addTo(map);
+    // const mRed = L.marker([51.495, -0.083], {icon: greenIcon}).bindPopup('I am a red leaf.').addTo(map);
+    // const mOrange = L.marker([51.49, -0.1], {icon: greenIcon}).bindPopup('I am an orange leaf.').addTo(map);
+</script>
+</body>
+</html>

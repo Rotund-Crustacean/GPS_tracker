@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+</head>
+<body>
+<!--title-->
+<h2>Login</h2>
+<form method="post">
+    <!--this csrf token is essentially confirming to the webserver-->
+    <!--that this form is from a valid source-->
+    {% csrf_token %}
+    {{ form }}
+    <button type="submit">Login</button>
+</form>
